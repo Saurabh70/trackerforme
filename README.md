@@ -14,14 +14,16 @@ Next.js 15 (App Router) + Tailwind + Supabase (Postgres, Auth, RLS).
 ## Setup
 1. Create a project at https://supabase.com.
 2. In **SQL Editor**, run `supabase/migrations/20261017000000_init.sql`.
-3. **Authentication → URL Configuration**: set Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` to Redirect URLs (add your Vercel URL later too).
+3. **Authentication → Providers → Email**: turn off "Confirm email". Turn off "Allow new users to sign up" once your accounts exist.
 4. `cp .env.example .env.local`, then paste the Project URL and anon/publishable key from **Project Settings → API**.
 5. `npm install && npm run dev`, then open http://localhost:3000.
 
-> Tip: Supabase's built-in email sender is rate limited. For quick testing, use the **Password** tab, or turn off "Confirm email" under Authentication → Providers → Email.
+> Login is name + password; each name maps to `<name>@trackerforme.app` behind the scenes. The login page is sign-in only.
 
-## Deploy
-Push to GitHub → import in Vercel → add the two `NEXT_PUBLIC_SUPABASE_*` env vars → add the Vercel URL to Supabase Redirect URLs.
+## Deploy (GitHub Pages)
+The app is a static export (`output: "export"`), so it runs on GitHub Pages. Pushing to `main` runs `.github/workflows/deploy.yml`.
+Set two repository **variables** (Settings → Secrets and variables → Actions → Variables): `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+The anon key is public by design; Row Level Security keeps each user's data private.
 
 ## Schema
 - `profiles`: goals and units (created automatically on signup by a trigger)

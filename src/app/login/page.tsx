@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Activity } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -11,12 +11,19 @@ const NAME_DOMAIN = "trackerforme.app";
 const nameToEmail = (name: string) => `${name.trim().toLowerCase()}@${NAME_DOMAIN}`;
 
 export default function LoginPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // Already signed in? Go straight to the homepage.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace("/");
+    });
+  }, [supabase, router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
