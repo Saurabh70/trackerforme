@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DailyLog, StepEntry } from "@/lib/types";
-import { localISO } from "@/lib/dates";
+import { TRACKING_START, localISO } from "@/lib/dates";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 // Fixed order in every cell: steps, meals, weight.
@@ -40,6 +40,8 @@ export default function MonthCalendar({
   };
   const now = new Date();
   const isCurrentMonth = month.y === now.getFullYear() && month.m === now.getMonth();
+  const [sy, sm] = TRACKING_START.split("-").map(Number);
+  const isStartMonth = month.y < sy || (month.y === sy && month.m <= sm - 1);
 
   return (
     <section className="card">
@@ -48,7 +50,7 @@ export default function MonthCalendar({
           {first.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
         </h2>
         <div className="flex gap-1">
-          <button className="btn-icon" onClick={() => shift(-1)} aria-label="Previous month">
+          <button className="btn-icon disabled:opacity-30" onClick={() => shift(-1)} disabled={isStartMonth} aria-label="Previous month">
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button className="btn-icon disabled:opacity-30" onClick={() => shift(1)} disabled={isCurrentMonth} aria-label="Next month">
@@ -75,7 +77,7 @@ export default function MonthCalendar({
             meals: !!log && log.meals.length > 0,
             weight: log?.weight != null,
           };
-          const future = date > today;
+          const future = date > today || date < TRACKING_START;
           const isSel = date === selected;
           const isToday = date === today;
           const logged = KINDS.filter((k) => has[k.key]).map((k) => k.label);

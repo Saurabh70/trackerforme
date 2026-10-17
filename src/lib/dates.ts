@@ -24,3 +24,6 @@ export function daysBetween(a: string, b: string): number {
 export function prettyDate(s: string): string {
   return parseISO(s).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
+
+/** First day the tracker counts; earlier days can't be viewed or logged. */
+export const TRACKING_START = "2026-10-17";

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { DailyLog, Meal, Profile, StepEntry, Streaks } from "@/lib/types";
-import { localISO } from "@/lib/dates";
+import { TRACKING_START, localISO } from "@/lib/dates";
 import { progress, weighIns } from "@/lib/stats";
 import { Flame, LogOut, Settings } from "lucide-react";
 import MonthCalendar from "./MonthCalendar";
@@ -35,8 +35,8 @@ export default function Dashboard({ profile }: { profile: Profile }) {
   useEffect(() => {
     (async () => {
       const [logsRes, stepsRes] = await Promise.all([
-        supabase.from("daily_logs").select("*, meals(*)").order("log_date", { ascending: true }),
-        supabase.from("step_entries").select("*").order("created_at", { ascending: true }),
+        supabase.from("daily_logs").select("*, meals(*)").gte("log_date", TRACKING_START).order("log_date", { ascending: true }),
+        supabase.from("step_entries").select("*").gte("log_date", TRACKING_START).order("created_at", { ascending: true }),
       ]);
       if (logsRes.error) setError(logsRes.error.message);
       else setLogs((logsRes.data ?? []) as DailyLog[]);

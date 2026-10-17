@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import type { MealType } from "@/lib/types";
 import { MEAL_TYPES } from "@/lib/types";
-import { localISO, prettyDate } from "@/lib/dates";
+import { TRACKING_START, localISO, prettyDate } from "@/lib/dates";
 
 export type EntryKind = "steps" | "meal" | "weight";
 export type NewMeal = { meal_type: MealType; description: string; calories: number | null };
@@ -94,7 +94,7 @@ export default function AddEntryDialog({
   }, [open, defaultDate]);
 
   function changeDate(next: string) {
-    if (!next || next > today) return;
+    if (!next || next > today || next < TRACKING_START) return;
     setDate(next);
     const w = weightFor(next);
     setWeight(w != null ? String(w) : "");
@@ -144,7 +144,7 @@ export default function AddEntryDialog({
             </Select>
           </Field>
           <Field label="Date">
-            <input className="input" type="date" max={today} required value={date}
+            <input className="input" type="date" min={TRACKING_START} max={today} required value={date}
               onChange={(e) => changeDate(e.target.value)} />
           </Field>
         </div>
