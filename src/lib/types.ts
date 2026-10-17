@@ -42,11 +42,11 @@ export interface Streaks {
   longest_on_track: number;
 }
 
-export const MEAL_TYPES: { value: MealType; label: string; emoji: string }[] = [
-  { value: "breakfast", label: "Breakfast", emoji: "🍳" },
-  { value: "lunch", label: "Lunch", emoji: "🥗" },
-  { value: "dinner", label: "Dinner", emoji: "🍲" },
-  { value: "snack", label: "Snack", emoji: "🍎" },
+export const MEAL_TYPES: { value: MealType; label: string }[] = [
+  { value: "breakfast", label: "Breakfast" },
+  { value: "lunch", label: "Lunch" },
+  { value: "dinner", label: "Dinner" },
+  { value: "snack", label: "Snack" },
 ];
 
 export interface StepEntry {

@@ -7,7 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import type { DailyLog, Meal, Profile, StepEntry, Streaks } from "@/lib/types";
 import { localISO } from "@/lib/dates";
 import { progress, weighIns } from "@/lib/stats";
+import { Flame, LogOut, Settings } from "lucide-react";
 import MonthCalendar from "./MonthCalendar";
+import WeightGraph from "./WeightGraph";
 import DayPanel, { type NewMeal } from "./DayPanel";
 
 export default function Dashboard({ profile }: { profile: Profile }) {
@@ -148,53 +150,48 @@ export default function Dashboard({ profile }: { profile: Profile }) {
   const ready = mounted && !loading;
 
   return (
-    <main className="mx-auto max-w-xl space-y-4 px-4 pb-16 pt-6">
+    <main className="mx-auto max-w-xl space-y-3 px-4 pt-6 pb-16">
       <header className="flex items-center justify-between gap-2">
-        <h1 className="min-w-0 truncate text-lg font-bold sm:text-xl">
-          {profile.display_name ? `Hey ${profile.display_name} 👋` : "Tracker For Me"}
-        </h1>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="min-w-0">
+          <p className="text-[12px] text-muted">Tracker For Me</p>
+          <h1 className="truncate text-[20px] font-semibold tracking-tight">
+            {profile.display_name ? `Hi, ${profile.display_name}` : "Your progress"}
+          </h1>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           {ready && streak > 0 && (
-            <span className="whitespace-nowrap rounded-full bg-orange-500/15 px-2.5 py-1 text-xs font-semibold text-orange-600 dark:text-orange-400">
-              🔥 {streak}
+            <span
+              className="mr-1 inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[12px] font-semibold tabular-nums"
+              title={`${streak}-day logging streak`}
+            >
+              <Flame className="h-3.5 w-3.5 text-meals" /> {streak}
             </span>
           )}
-          <Link href="/settings" className="btn-ghost px-2.5" aria-label="Settings">⚙️</Link>
-          <button onClick={signOut} className="btn-ghost whitespace-nowrap text-xs">Sign out</button>
+          <Link href="/settings" className="btn-icon" aria-label="Goal settings">
+            <Settings className="h-[18px] w-[18px]" />
+          </Link>
+          <button onClick={signOut} className="btn-icon" aria-label="Sign out" title="Sign out">
+            <LogOut className="h-[18px] w-[18px]" />
+          </button>
         </div>
       </header>
 
       {error && (
-        <div className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">{error}</div>
+        <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</div>
       )}
 
-      {/* Current / Start / Target */}
       <section className="card">
-        <div className="grid grid-cols-3 divide-x divide-border text-center">
-          {[
-            { label: "Current", value: p.now, strong: true },
-            { label: "Start", value: p.start },
-            { label: "Target", value: p.target },
-          ].map((s) => (
-            <div key={s.label} className="px-2">
-              <div className="text-xs text-muted">{s.label}</div>
-              <div className={`tabular-nums ${s.strong ? "text-2xl font-extrabold text-accent" : "text-xl font-bold"}`}>
-                {s.value.toFixed(1)}
-              </div>
-              <div className="text-[11px] text-muted">{u}</div>
-            </div>
-          ))}
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="text-[15px] font-semibold">Weight</h2>
+          <p className="text-[12px] text-muted tabular-nums">
+            {p.pct >= 1 ? "Target reached" : `${p.left.toFixed(1)} ${u} to go · ${Math.round(p.pct * 100)}% there`}
+          </p>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border">
-          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${p.pct * 100}%` }} />
-        </div>
-        <p className="mt-1 text-center text-xs text-muted">
-          {p.pct >= 1 ? "🎉 Target reached!" : `${p.left.toFixed(1)} ${u} to go`}
-        </p>
+        {ready ? <WeightGraph profile={profile} points={points} /> : <div className="h-[200px] animate-pulse rounded-lg bg-subtle" />}
       </section>
 
       {!ready ? (
-        <div className="card h-80 animate-pulse" />
+        <div className="card h-80 animate-pulse bg-subtle" />
       ) : (
         <>
           <MonthCalendar
@@ -216,6 +213,16 @@ export default function Dashboard({ profile }: { profile: Profile }) {
             onAddMeal={addMeal}
             onDeleteMeal={deleteMeal}
             onSaveWeight={saveWeight}
+            stepsFor={(d) => steps.filter((s) => s.log_date === d).reduce((a, s) => a + s.steps, 0)}
+            weightFor={(d) => {
+              const wt = logFor(d)?.weight;
+              return wt != null ? Number(wt) : null;
+            }}
+            onSaved={(d) => {
+              setDate(d);
+              const [y, m] = d.split("-").map(Number);
+              setMonth({ y, m: m - 1 });
+            }}
           />
         </>
       )}
