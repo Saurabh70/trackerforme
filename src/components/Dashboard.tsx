@@ -201,6 +201,7 @@ export default function Dashboard({ profile }: { profile: Profile }) {
             onSelect={setDate}
             logs={logs}
             steps={steps}
+            unit={profile.unit}
           />
           <DayPanel
             date={date}

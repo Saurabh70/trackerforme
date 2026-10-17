@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DailyLog, StepEntry } from "@/lib/types";
-import { TRACKING_START, localISO } from "@/lib/dates";
+import { TRACKING_START, localISO, prettyDate } from "@/lib/dates";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 // Fixed order in every cell: steps, meals, weight.
@@ -19,7 +19,9 @@ export default function MonthCalendar({
   onSelect,
   logs,
   steps,
+  unit,
 }: {
+  unit: string;
   month: { y: number; m: number }; // m is 0-based
   setMonth: (m: { y: number; m: number }) => void;
   selected: string;
@@ -32,7 +34,8 @@ export default function MonthCalendar({
   const daysInMonth = new Date(month.y, month.m + 1, 0).getDate();
   const lead = first.getDay();
   const byDate = new Map(logs.map((l) => [l.log_date, l]));
-  const stepDates = new Set(steps.map((s) => s.log_date));
+  const stepTotals = new Map<string, number>();
+  for (const s of steps) stepTotals.set(s.log_date, (stepTotals.get(s.log_date) ?? 0) + s.steps);
   const iso = (d: number) => localISO(new Date(month.y, month.m, d));
   const shift = (n: number) => {
     const d = new Date(month.y, month.m + n, 1);
@@ -73,7 +76,7 @@ export default function MonthCalendar({
           const date = iso(d);
           const log = byDate.get(date);
           const has = {
-            steps: stepDates.has(date),
+            steps: stepTotals.has(date),
             meals: !!log && log.meals.length > 0,
             weight: log?.weight != null,
           };
@@ -81,29 +84,57 @@ export default function MonthCalendar({
           const isSel = date === selected;
           const isToday = date === today;
           const logged = KINDS.filter((k) => has[k.key]).map((k) => k.label);
+          const col = (lead + d - 1) % 7;
+          const kcal = (log?.meals ?? []).reduce((a, m) => a + (m.calories ?? 0), 0);
+          const mealCount = log?.meals.length ?? 0;
+          const stats = {
+            steps: has.steps ? stepTotals.get(date)!.toLocaleString() : "—",
+            meals: mealCount ? `${mealCount} ${mealCount === 1 ? "meal" : "meals"}${kcal ? ` · ${kcal.toLocaleString()} kcal` : ""}` : "—",
+            weight: has.weight ? `${Number(log!.weight).toFixed(1)} ${unit}` : "—",
+          };
           return (
-            <button
-              key={date}
-              onClick={() => onSelect(date)}
-              disabled={future}
-              aria-pressed={isSel}
-              aria-label={`${date}${logged.length ? `: ${logged.join(", ")}` : ""}`}
-              className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg transition
-                ${isSel ? "bg-subtle ring-1 ring-foreground/80" : "hover:bg-subtle"}
-                ${future ? "pointer-events-none opacity-30" : ""}`}
-            >
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-[13px] tabular-nums
-                  ${isToday ? "bg-primary font-semibold text-primary-fg" : ""}`}
+            <div key={date} className="group relative">
+              <button
+                onClick={() => onSelect(date)}
+                disabled={future}
+                aria-pressed={isSel}
+                aria-label={`${date}${logged.length ? `: ${logged.join(", ")}` : ""}`}
+                className={`flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-lg transition
+                  ${isSel ? "bg-subtle ring-1 ring-foreground/80" : "hover:bg-subtle"}
+                  ${future ? "pointer-events-none opacity-30" : ""}`}
               >
-                {d}
-              </span>
-              <span className="flex gap-[3px]">
-                {KINDS.map((k) => (
-                  <span key={k.key} className={`h-2 w-2 rounded-full ${has[k.key] ? k.color : "bg-border-strong/70"}`} />
-                ))}
-              </span>
-            </button>
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[13px] tabular-nums
+                    ${isToday ? "bg-primary font-semibold text-primary-fg" : ""}`}
+                >
+                  {d}
+                </span>
+                <span className="flex gap-[3px]">
+                  {KINDS.map((k) => (
+                    <span key={k.key} className={`h-2 w-2 rounded-full ${has[k.key] ? k.color : "bg-border-strong/70"}`} />
+                  ))}
+                </span>
+              </button>
+              {!future && (
+                <div
+                  role="tooltip"
+                  className={`pointer-events-none invisible absolute bottom-full z-20 mb-1.5 w-52 rounded-lg border border-border bg-card p-2.5 text-[12px] opacity-0 shadow-lg transition-opacity
+                    group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100
+                    ${col <= 1 ? "left-0" : col >= 5 ? "right-0" : "left-1/2 -translate-x-1/2"}`}
+                >
+                  <div className="mb-1.5 font-semibold">{date === today ? "Today" : prettyDate(date)}</div>
+                  <dl className="space-y-1">
+                    {KINDS.map((k) => (
+                      <div key={k.key} className="flex items-center gap-2">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${k.color}`} />
+                        <dt className="text-muted">{k.label}</dt>
+                        <dd className="ml-auto font-medium whitespace-nowrap tabular-nums">{stats[k.key]}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

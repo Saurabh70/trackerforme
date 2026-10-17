@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Profile } from "@/lib/types";
-import { parseISO } from "@/lib/dates";
+import { TRACKING_START, addDays, localISO, parseISO } from "@/lib/dates";
 import type { WeighIn } from "@/lib/stats";
 
 const H = 200;
@@ -57,11 +57,14 @@ export default function WeightGraph({ profile, points }: { profile: Profile; poi
     const ih = H - PAD.top - PAD.bottom;
     const y = (v: number) => PAD.top + ((y1 - v) / (y1 - y0)) * ih;
 
+    // Timeline runs from the tracking start to today (at least one week wide), so the line grows left to right.
+    const lastDate = points.at(-1)?.date ?? TRACKING_START;
+    const minEnd = addDays(TRACKING_START, 6);
+    const endDate = [localISO(), lastDate, minEnd].sort().at(-1)!;
+    const t0 = parseISO(TRACKING_START).getTime();
+    const t1 = parseISO(endDate).getTime();
     const t = points.map((p) => parseISO(p.date).getTime());
-    const t0 = t[0];
-    const t1 = t.at(-1);
-    const x = (i: number) =>
-      points.length <= 1 || t1 === t0 ? PAD.left + iw / 2 : PAD.left + ((t[i] - t0) / (t1! - t0)) * iw;
+    const x = (i: number) => PAD.left + ((t[i] - t0) / (t1 - t0)) * iw;
 
     // ~4 "nice" gridlines
     const step = [0.5, 1, 2, 5, 10, 20, 50].find((s) => (y1 - y0) / s <= 4) ?? 100;
@@ -81,7 +84,7 @@ export default function WeightGraph({ profile, points }: { profile: Profile; poi
       H - PAD.bottom - 4,
     );
 
-    return { x, y, ticks, line, labels, iw };
+    return { x, y, ticks, line, labels, iw, endDate };
   }, [points, start, target, current, w]);
 
   function onMove(e: React.PointerEvent<SVGSVGElement>) {
@@ -150,18 +153,12 @@ export default function WeightGraph({ profile, points }: { profile: Profile; poi
         )}
 
         {/* x labels */}
-        {points.length > 0 && (
-          <>
-            <text x={g.x(0)} y={H - 6} fontSize={11} fill="var(--muted)" textAnchor={points.length > 1 ? "start" : "middle"}>
-              {fmtDate(points[0].date)}
-            </text>
-            {points.length > 1 && (
-              <text x={g.x(lastI)} y={H - 6} fontSize={11} fill="var(--muted)" textAnchor="end">
-                {fmtDate(points[lastI].date)}
-              </text>
-            )}
-          </>
-        )}
+        <text x={PAD.left} y={H - 6} fontSize={11} fill="var(--muted)" textAnchor="start">
+          {fmtDate(TRACKING_START)}
+        </text>
+        <text x={PAD.left + g.iw} y={H - 6} fontSize={11} fill="var(--muted)" textAnchor="end">
+          {g.endDate === localISO() ? "Today" : fmtDate(g.endDate)}
+        </text>
 
         {/* right-gutter direct labels */}
         {g.labels.map((l) => (
